@@ -55,9 +55,10 @@ namespace StuffNFTTests
 
             engine.ExecuteScript<StuffNFTContract>(c => c.symbol());
 
-            engine.State.Should().Be("STUFF");
+            engine.State.Should().Be(VMState.HALT);
             engine.ResultStack.Should().HaveCount(1);
-            engine.ResultStack.Peek(0).Should().BeTrue();
+            engine.ResultStack.Peek(0).Should().BeEquivalentTo("stocazzo"); //BeTrue();
+            //engine.ResultStack.Peek(0).Should().BeEquivalentTo("STUFF");
         }
 
         // [Fact]

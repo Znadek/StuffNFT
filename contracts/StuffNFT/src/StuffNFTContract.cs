@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 using System.ComponentModel;
 using System.Numerics;
 
@@ -9,7 +10,7 @@ using Neo.SmartContract.Framework.Services;
 
 namespace StuffNFT
 {
-    [DisplayName("Znadek.StuffNFT")]
+    [DisplayName("StuffNFT.StuffNFT")]
     [ManifestExtra("Author", "Mattia Braga")]
     [ManifestExtra("Name", "StuffNFT")]
     [ManifestExtra("Email", "mattia.braga.91@gmail.com")]
@@ -21,9 +22,9 @@ namespace StuffNFT
     {
         private static ByteString Owner() => (ByteString)Storage.Get(Storage.CurrentContext, "Owner");
 		private static BigInteger TokenTotal() => (BigInteger)Storage.Get(Storage.CurrentContext, "TokenTotal");
-        private static StorageMap AccountAndTokenMap() => new StorageMap(Storage.CurrentContext, "AccountAndTokenMap");
-        private static StorageMap TokenIdAndTokenValueMap() => new StorageMap(Storage.CurrentContext, "TokenIdTokenMap");
-        private static StorageMap AddressAndTokenCount() => new StorageMap(Storage.CurrentContext, "AddressTokenCount");
+        private static StorageMap AccountAndTokenMap => new StorageMap(Storage.CurrentContext, "AccountAndTokenMap");
+        private static StorageMap TokenIdAndTokenValueMap => new StorageMap(Storage.CurrentContext, "TokenIdTokenMap");
+        private static StorageMap AddressAndTokenCount => new StorageMap(Storage.CurrentContext, "AddressTokenCount");
 		private static Transaction Tx => (Transaction)Runtime.ScriptContainer;
 
         [DisplayName("Transfer")]
@@ -46,7 +47,7 @@ namespace StuffNFT
 		public static BigInteger BalanceOf(UInt160 owner)
 		{
 			IsValidAddress(owner, "owner");
-			return (BigInteger)AddressAndTokenCount()[owner];
+			return (BigInteger)AddressAndTokenCount[owner];
 		}
         
         [Safe]
@@ -54,7 +55,7 @@ namespace StuffNFT
 		public static Iterator tokensOf(UInt160 owner)
 		{
             IsValidAddress(owner, "owner");
-            return AccountAndTokenMap().Find(owner, FindOptions.KeysOnly | FindOptions.RemovePrefix);
+            return AccountAndTokenMap.Find(owner, FindOptions.KeysOnly | FindOptions.RemovePrefix);
 		}
 
         [Safe]
@@ -62,13 +63,13 @@ namespace StuffNFT
         public static bool Transfer(UInt160 to, ByteString tokenId, object data)
         {
             IsValidAddress(to, "to");
-            StuffNFTTokenState token = (StuffNFTTokenState)StdLib.Deserialize(TokenIdAndTokenValueMap()[tokenId]);
+            StuffNFTTokenState token = (StuffNFTTokenState)StdLib.Deserialize(TokenIdAndTokenValueMap[tokenId]);
             UInt160 from = token.Owner;
             if (!Runtime.CheckWitness(from)) return false;
             if (from != to)
             {
                 token.Owner = to;
-                TokenIdAndTokenValueMap()[tokenId] = StdLib.Serialize(token);
+                TokenIdAndTokenValueMap[tokenId] = StdLib.Serialize(token);
                 UpdateBalance(from, tokenId, -1);
                 UpdateBalance(to, tokenId, +1);
             }
@@ -76,40 +77,46 @@ namespace StuffNFT
             return true;
         }
 
+        public static void MintString(string tokenId, string tokenString)
+        {
+            StuffNFTTokenState token = (StuffNFTTokenState)StdLib.Deserialize(tokenString);
+            Mint((ByteString) tokenId, token);
+        }
+
         public static void Mint(ByteString tokenId, StuffNFTTokenState token)
         {
-            TokenIdAndTokenValueMap()[tokenId] = StdLib.Serialize(token);
-            UpdateBalance(token.Owner, tokenId, +1);
-            PostTransfer(null, token.Owner, tokenId, null);
+            TokenIdAndTokenValueMap.Put(tokenId, StdLib.Serialize(token));
+            UpdateBalance((UInt160)Tx.Sender, tokenId, +1);
+            PostTransfer(null, (UInt160)Tx.Sender, tokenId, null);
         }
 
         public static void Burn(ByteString tokenId)
         {
-            var token = (StuffNFTTokenState)StdLib.Deserialize(TokenIdAndTokenValueMap()[tokenId]);
-            TokenIdAndTokenValueMap().Delete(tokenId);
-            UpdateBalance(token.Owner, tokenId, -1);
-            PostTransfer(token.Owner, null, tokenId, null);
+            var token = (StuffNFTTokenState)StdLib.Deserialize(TokenIdAndTokenValueMap[tokenId]);
+            TokenIdAndTokenValueMap.Delete(tokenId);
+            UpdateBalance((UInt160)Tx.Sender, tokenId, -1);
+            PostTransfer((UInt160)Tx.Sender, null, tokenId, null);
         }
 
         [Safe]
         [DisplayName("ownerOf")]
 		public static UInt160 OwnerOf(ByteString tokenId)
 		{
-			return (UInt160)AccountAndTokenMap()[tokenId];
+			return (UInt160)AccountAndTokenMap[tokenId];
 		}
 
         [Safe]
 		[DisplayName("tokens")]
 		public static Iterator tokens()
 		{
-			return TokenIdAndTokenValueMap().Find(FindOptions.KeysOnly);
+			return TokenIdAndTokenValueMap.Find(FindOptions.KeysOnly);
 		}
 
         [Safe]
 		[DisplayName("properties")]
 		public static string Properties(ByteString tokenId)
 		{
-			return TokenIdAndTokenValueMap()[tokenId];
+			return TokenIdAndTokenValueMap[tokenId];
 		}
 
 		[DisplayName("_deploy")]
@@ -146,7 +153,7 @@ namespace StuffNFT
 
         private static void UpdateBalance(UInt160 owner, ByteString tokenId, int increment)
         {
-            BigInteger addressTokenCount = (BigInteger)AddressAndTokenCount()[owner];
+            BigInteger addressTokenCount = (BigInteger)AddressAndTokenCount[owner];
             var tokenTotal = TokenTotal();
 
 			addressTokenCount += increment;
@@ -154,9 +161,9 @@ namespace StuffNFT
 			if (addressTokenCount < 0) throw new Exception("An address cannot have negative token count");
 
 			if (addressTokenCount.IsZero)
-				AddressAndTokenCount().Delete(owner);
+				AddressAndTokenCount.Delete(owner);
 			else
-				AddressAndTokenCount().Put(owner, addressTokenCount);
+				AddressAndTokenCount.Put(owner, addressTokenCount);
             
             Storage.Put(Storage.CurrentContext, "TokenTotal", tokenTotal);
         }
