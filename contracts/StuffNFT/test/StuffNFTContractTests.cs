@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 using FluentAssertions;
 using Neo.Assertions;
@@ -57,10 +58,35 @@ namespace StuffNFTTests
 
             engine.State.Should().Be(VMState.HALT);
             engine.ResultStack.Should().HaveCount(1);
-            engine.ResultStack.Peek(0).Should().BeEquivalentTo("stocazzo"); //BeTrue();
+            engine.ResultStack.Peek(0).Should().BeTrue(); //BeTrue();
             //engine.ResultStack.Peek(0).Should().BeEquivalentTo("STUFF");
         }
 
+        [Fact]
+        public void mint()
+        {
+            var settings = chain.GetProtocolSettings();
+            var alice = chain.GetDefaultAccount("alice").ToScriptHash(settings.AddressVersion);
+
+            using var snapshot = fixture.GetSnapshot();
+
+            // ExecuteScript converts the provided expression(s) into a Neo script
+            // loads them into the engine and executes it 
+            using var engine = new TestApplicationEngine(snapshot, settings, alice);
+            var model = "{ Name : \"Test\", Description : \"Description test\" }";
+            var x = Encoding.ASCII.GetBytes(model);
+            engine.ExecuteScript<StuffNFTContract>(c => c.mint(Encoding.ASCII.GetBytes("1"), x));
+
+            engine.State.Should().Be(VMState.HALT);
+            engine.ResultStack.Should().HaveCount(1);
+            //engine.ResultStack.Peek(0).Should().BeEquivalentTo("STUFF");
+
+            var storages = snapshot.GetContractStorages<StuffNFTContract>();
+            var contractStorage = storages.StorageMap("TokenIdTokenMap");
+            contractStorage.TryGetValue("1", out var item).Should().BeTrue();
+            contractStorage.TryGetValue("2", out var item2).Should().BeFalse();
+            //item!.Should().Be(model);
+        }
         // [Fact]
         // public void can_change_number()
         // {

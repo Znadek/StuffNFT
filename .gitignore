@@ -2,3 +2,7 @@ contracts/StuffNFT/src/bin/
 contracts/StuffNFT/src/obj/
 contracts/StuffNFT/test/bin/
 contracts/StuffNFT/test/obj/
+contracts/StuffManager/src/bin/
+contracts/StuffManager/src/Debug/
+contracts/StuffManager/src/obj/
+invoke-files/
