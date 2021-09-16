@@ -23,11 +23,11 @@ namespace StuffNFT {
 
 		public static void CreateToken(UInt160 NFTScriptHash, ByteString NFTTokenId, ByteString value)
 		{
-			string name = (string)Contract.Call(NFTScriptHash, "symbol", CallFlags.ReadOnly);
+			string name = (string)Contract.Call(NFTScriptHash, "symbol", CallFlags.All );
             if (name != "STUFF")
                 throw new Exception("Token nft non valido");
 
-			Contract.Call(NFTScriptHash, "mint", CallFlags.ReadOnly, new object[] { NFTTokenId, value});
+			Contract.Call(NFTScriptHash, "mint", CallFlags.All , new object[] { NFTTokenId, value});
 
 		}
 

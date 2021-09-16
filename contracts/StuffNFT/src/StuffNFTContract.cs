@@ -17,7 +17,7 @@ namespace StuffNFT
     [ManifestExtra("Version", "1.0.0")]
     [ManifestExtra("Description", "This NFT represent a stuff of the real world")]
     [SupportedStandards("NEP-11")]
-	[ContractPermission("*", "onNEP11Payment")]
+	[ContractPermission("*", "*")]
     public class StuffNFTContract : SmartContract
     {
         private static ByteString Owner() => (ByteString)Storage.Get(Storage.CurrentContext, "Owner");
